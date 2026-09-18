@@ -9,13 +9,15 @@ API REST para la gestión de una agenda telefónica. Permite crear, listar, cons
 - **Spring Data JPA / Hibernate**
 - **MySQL 8+**
 - **Gradle 9.7.1** (wrapper incluido, no requiere instalación)
+- **Docker + Docker Compose** (despliegue en contenedor, opcional)
 - Empaquetado: WAR
 
 ## Requisitos
 
-- JDK 17 instalado
-- MySQL 8+ en ejecución
-- Puertos libres: `8080` (aplicación) y `3306` (MySQL)
+- **JDK 17** (solo para correr local con Gradle; la imagen Docker trae su propio JRE)
+- **MySQL 8+** en ejecución (o levantarlo con Docker Compose)
+- **Docker Engine + Docker Compose** (solo para el despliegue en contenedor)
+- Puertos libres: `8080` (aplicación) y `3306` (MySQL) al usar Docker Compose o correr local
 
 ## Configuración de base de datos
 
@@ -39,6 +41,8 @@ API REST para la gestión de una agenda telefónica. Permite crear, listar, cons
 
 ## Cómo correr el proyecto
 
+### Modo desarrollo con Gradle
+
 Desde la carpeta del proyecto:
 
 ```bash
@@ -46,15 +50,74 @@ cd agendaTelefonica
 ./gradlew bootRun
 ```
 
+`bootRun` compila y ejecuta la clase principal directamente (sin empaquetar) y levanta un **Tomcat 11 embebido** en el puerto 8080. Requiere **JDK 17** (toolchain declarada en `build.gradle.kts`) y un MySQL accesible según la configuración de arriba.
+
 La aplicación se levanta en **http://localhost:8080**.
 
-Para generar el artefacto (WAR):
+Alternativa desde IDE: ejecutar la clase `com.examen.AgendaTelefonicaApplication` (Spring Boot Dashboard / Run).
+
+### Generar el artefacto (WAR)
 
 ```bash
 ./gradlew build
 ```
 
 El archivo resultante queda en `agendaTelefonica/build/libs/`.
+
+## Despliegue con Docker
+
+El proyecto está dockerizado con un `Dockerfile` multi-etapa y un `docker-compose.yml`:
+
+- **Etapa de build**: imagen `gradle:9.7.1-jdk17` genera el WAR.
+- **Etapa de runtime**: imagen `eclipse-temurin:17-jre`; la app corre con `java -jar` usando el **servidor Tomcat embebido** dentro del contenedor (no requiere WildFly).
+
+### Opción 1 — Todo junto (recomendado)
+
+Levanta MySQL 8 y la aplicación en una red interna propia:
+
+```bash
+docker compose up -d
+```
+
+- Crea la red interna, el volumen `agendatelefonica_mysql-data` (los datos persisten) y espera el healthcheck de MySQL antes de iniciar la app.
+- La aplicación queda en **http://localhost:8080/contactos** y se conecta al servicio `db` por su nombre en la red (el mapeo `3306:3306` solo se usa para clientes externos como Workbench).
+
+Comandos útiles:
+
+```bash
+docker compose up -d --build   # reconstruye la imagen tras cambios en el código
+docker compose logs -f app     # sigue los logs de la aplicación
+docker compose down            # detiene los contenedores (conserva el volumen de datos)
+docker compose down -v         # detiene y ELIMINA el volumen de datos
+```
+
+### Opción 2 — Conectar a un MySQL que ya tienes en Docker
+
+Si ya tienes un contenedor MySQL corriendo, se conectan por una **red Docker compartida** (nunca por `localhost`):
+
+```bash
+docker network create agenda-net
+docker network connect agenda-net <nombre-de-tu-mysql> --alias mysql
+
+docker run -p 8080:8080 \
+  --network agenda-net \
+  -e DB_HOST=mysql \
+  -e DB_PORT=3306 \
+  -e DB_NAME=examenJavaSalinas \
+  -e DB_USER=root \
+  -e DB_PASSWORD=devpass \
+  agendatelefonica-app
+```
+
+`DB_HOST` se resuelve por el **nombre/alias del contenedor en la red**, no por IP. Para apuntar a un MySQL del host (no Docker) usarías `host.docker.internal` (Linux: `--add-host=host.docker.internal:host-gateway`).
+
+### Despliegue en servidor externo (WildFly)
+
+El WAR generado también es desplegable en un **WildFly ≥ 40** (requiere **Servlet 6.1 / Jakarta EE 11**, base de Spring Boot 4). El servidor embebido no interfiere: Tomcat solo aparece en `bootRun` y en el WAR va en `WEB-INF/lib-provided`, que WildFly ignora y usa su propio Undertow. El contexto por defecto es el nombre del WAR (`/agendaTelefonica-0.0.1-SNAPSHOT`); para servir en la raíz (`/contactos`), despliega el archivo como `ROOT.war`.
+
+### Acceso a Docker
+
+Si `docker` falla con `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock`, tu sesión no tiene el grupo `docker` cargado. Solución: cerrar sesión y volver a entrar (o ejecutar `newgrp docker` en la terminal). No se requiere `sudo`.
 
 ## Endpoints expuestos
 
