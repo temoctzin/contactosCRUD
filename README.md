@@ -21,10 +21,10 @@ API REST para la gestión de una agenda telefónica. Permite crear, listar, cons
 
 ## Configuración de base de datos
 
-1. Crea la base de datos (por defecto `examenJavaSalinas`):
+1. Crea la base de datos (por defecto `ejercicios`):
 
    ```sql
-   CREATE DATABASE examenJavaSalinas;
+   CREATE DATABASE ejercicios;
    ```
 
 2. Proporciona credenciales vía variables de entorno, o usa los valores por defecto:
@@ -33,7 +33,7 @@ API REST para la gestión de una agenda telefónica. Permite crear, listar, cons
    |----------|---------|-------------|
    | `DB_HOST` | `localhost` | Host de MySQL |
    | `DB_PORT` | `3306` | Puerto de MySQL |
-   | `DB_NAME` | `examenJavaSalinas` | Nombre de la base de datos |
+   | `DB_NAME` | `ejercicios` | Nombre de la base de datos |
    | `DB_USER` | `root` | Usuario de MySQL |
    | `DB_PASSWORD` | `devpass` | Contraseña del usuario |
 
@@ -103,7 +103,7 @@ docker run -p 8080:8080 \
   --network agenda-net \
   -e DB_HOST=mysql \
   -e DB_PORT=3306 \
-  -e DB_NAME=examenJavaSalinas \
+  -e DB_NAME=ejercicios \
   -e DB_USER=root \
   -e DB_PASSWORD=devpass \
   agendatelefonica-app
