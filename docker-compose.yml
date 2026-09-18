@@ -1,0 +1,34 @@
+services:
+  db:
+    image: mysql:8
+    container_name: agenda-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: devpass
+      MYSQL_DATABASE: examenJavaSalinas
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pdevpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: agenda-app
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: examenJavaSalinas
+      DB_USER: root
+      DB_PASSWORD: devpass
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql-data:
