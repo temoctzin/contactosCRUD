@@ -38,7 +38,7 @@ public class Contacto {
 	private LocalDateTime fechaCreacion;
 	
 	@Column(nullable = false)
-	private boolean activo = false;
+	private boolean activo = true;
 	
 	@ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
 	@JoinTable(

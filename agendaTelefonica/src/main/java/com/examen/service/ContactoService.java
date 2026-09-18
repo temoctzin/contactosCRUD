@@ -7,7 +7,6 @@ import com.examen.model.Telefono;
 import com.examen.repository.ContactoRepositorio;
 import com.examen.repository.TelefonoRepositorio;
 import com.examen.dto.ContactoResponse;
-import com.examen.dto.ContactoRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Set;
 import java.util.HashSet;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,6 +42,46 @@ public class ContactoService {
 		
 		return toResponse(contactoRepositorio.save(contacto));
 	}
+	
+	@Transactional(readOnly = true)
+    public ContactoResponse getById(Long id) {
+        Contacto contacto = contactoRepositorio.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contacto no encontrado"));
+        return toResponse(contacto);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ContactoResponse> getAll() {
+        return contactoRepositorio.findAll().stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    @Transactional
+    public ContactoResponse update(Long id, ContactoRequest request) {
+        Contacto contacto = contactoRepositorio.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contacto no encontrado"));
+
+        if (contactoRepositorio.existsByEmailAndIdNot(request.email(), id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El email ya pertenece a otro contacto");
+        }
+
+        contacto.setNombre(request.nombre());
+        contacto.setApellidoPaterno(request.apellidoPaterno());
+        contacto.setApellidoMaterno(request.apellidoMaterno());
+        contacto.setEmail(request.email());
+        contacto.setTelefonos(resolverTelefonos(request.telefonos()));
+
+        return toResponse(contactoRepositorio.save(contacto));
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        Contacto contacto = contactoRepositorio.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contacto no encontrado"));
+        contacto.setActivo(false);
+        contactoRepositorio.save(contacto);
+    }
 	
 	private Set<Telefono> resolverTelefonos(Set<TelefonoDto> telefonosDto){
 		Set<Telefono> telefonos = new HashSet<>();
