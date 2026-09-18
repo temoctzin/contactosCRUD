@@ -4,7 +4,7 @@ services:
     container_name: agenda-mysql
     environment:
       MYSQL_ROOT_PASSWORD: devpass
-      MYSQL_DATABASE: examenJavaSalinas
+      MYSQL_DATABASE: ejercicios
     ports:
       - "3306:3306"
     volumes:
@@ -23,7 +23,7 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 3306
-      DB_NAME: examenJavaSalinas
+      DB_NAME: ejercicios
       DB_USER: root
       DB_PASSWORD: devpass
     depends_on:
